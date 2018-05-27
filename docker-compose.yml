@@ -1,0 +1,67 @@
+version: '3'
+services:
+  zookeeper:
+    image: "zookeeper"
+    ports:
+      - 2181:2181
+      - 2888:2888
+      - 3888:3888
+    expose:
+      - "2181"
+      - "2888"
+      - "3888"
+    container_name: "zookeeper"
+    restart: always
+
+  nimbus:
+    image: "storm"
+    environment:
+      - supervisor.slots.ports="[6700,6701,6702,6703,6704,6705,6706]"
+    container_name: "nimbus"
+    expose:
+      - 6627
+      - 3773
+      - 3772
+    ports:
+      - 6627:6627
+      - 3773:3773
+      - 3772:3772
+    depends_on:
+      - zookeeper
+      - couchdb
+      - rabbitmq
+    external_links:
+      - couchdb:couchdb
+      - zookeeper:zookeeper
+      - rabbit:rabbit
+    command: ["storm", "nimbus"]
+    restart: always
+
+  supervisor:
+    image: "storm"
+    environment:
+      - supervisor.slots.ports="[6700,6701,6702,6703,6704,6705,6706]"
+    container_name: "supervisor"
+    depends_on:
+      - zookeeper
+      - couchdb
+      - rabbitmq
+      - nimbus
+    external_links:
+      - couchdb:couchdb
+      - zookeeper:zookeeper
+      - rabbit:rabbit
+    command: ["storm", "supervisor"]
+    restart: always
+
+  ui:
+    image: "storm"
+    container_name: "ui"
+    depends_on:
+      - nimbus
+    external_links:
+      - nimbus:nimbus
+    ports:
+      - 8080:8080
+    command: ["storm", "ui"]
+    restart: always
